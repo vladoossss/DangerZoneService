@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="m-2" style="text-align: center;">
+
+  <form method="post" action="" enctype="multipart/form-data">
+    <!-- <div class="my-2">
+      <label for="file_list" class="form-label">Upload Video</label>
+      <input class="form-control w-auto" type="file" name="file" id="file">
+    </div>
+
+    <div class="my-2">
+      <p><input name="camera_off" class="btn" type="submit" value="Отключить видео"></p>
+    </div>
+    
+    {% if not res%}
+      <button class="btn btn-primary" type="submit">Submit</button>
+    {% endif %} -->
+    <input class="btn btn-outline-primary" type="file" name="file" id="file">
+    <input class="btn btn-outline-info" type="submit" name="action" value="OPEN">
+    <input class="btn btn-outline-danger" type="submit" name="action" value="STOP">
+  </form>
+
+  {% if res%}
+    <img src="{{ url_for('video_endpoint') }}" width="50%">
+  {% endif %}
+
+  {% if no_camera%}
+  <p class="lead mb-4">Не удается найти камеру</p>
+  {% endif %}
+
+
+</div>
+{% endblock %}

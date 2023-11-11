@@ -1,0 +1,140 @@
+version: "3"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.2.0
+    container_name: zookeeper
+    networks:
+      - broker-kafka
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:6.2.0
+    container_name: kafka
+    networks:
+      - broker-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME: kafka:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:3.27.0
+    networks:
+      - broker-kafka
+    depends_on:
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_started
+    ports:
+      - 19000:9000
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+
+  minio:
+    image: minio/minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - 9000:9000
+      - 9001:9001
+    networks:
+      - broker-kafka
+    command: server --console-address ":9001" ./data
+
+  telebot:
+    container_name: telebot
+    build:
+      context: ./services/telebot
+      dockerfile: Dockerfile
+    restart: "always"
+    environment:
+      - TELETOKEN=6878305086:AAH_rrBGyyUpYiV9WAmUqzLybLEHvll-uoM
+    volumes:
+      - ./services/volume/:/volume
+    networks:
+      - broker-kafka
+
+  consumer:
+    container_name: consumer
+    build:
+      context: ./services/consumer
+      dockerfile: Dockerfile
+    environment:
+      - KAFKA_TOPIC_NAME=topic_test
+      - KAFKA_SERVER=kafka
+      - KAFKA_PORT=29092
+      - TELETOKEN=6878305086:AAH_rrBGyyUpYiV9WAmUqzLybLEHvll-uoM
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=minioadmin
+      - MINIO_PASSWORD=minioadmin
+    ports:
+      - 8001:8001
+    restart: "always"
+    depends_on:
+      - zookeeper
+      - kafka
+      - yolo
+      - minio
+    volumes:
+      - ./services/volume/:/consumer/app/volume
+    networks:
+      - broker-kafka
+
+  yolo:
+    container_name: yolo
+    build:
+      context: ./services/yoloAPI
+      dockerfile: Dockerfile
+    environment:
+      - KAFKA_TOPIC_NAME=events
+      - KAFKA_SERVER=kafka
+      - KAFKA_PORT=29092
+
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=minioadmin
+      - MINIO_PASSWORD=minioadmin
+    ports:
+      - 8000:8000
+    restart: "always"
+    volumes:
+      - ./weights:/weights
+    depends_on:
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - broker-kafka
+
+networks:
+  broker-kafka:
+    driver: bridge
