@@ -33,6 +33,10 @@ user: minioadmin | psw: minioadmin
 Swagger - интерактивная документация по API, будет доступна по адресу `http://localhost:8000/docs`.
 
 
+### Схема сервиса
+![Scheme of service](data/imgs/scheme.png)
+
+
 ## Структура проекта
 Ниже представлена созданная структура проекта:
 ```cmd

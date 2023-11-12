@@ -45,7 +45,7 @@ def base64EncodeImage(img):
 
     return im_b64
 
-def minio_post(image_bytes, minio, bucket_name='cameras_events'):
+def minio_post(image_bytes, minio, bucket_name='events'):
             try:
                 found = minio.client.bucket_exists(bucket_name)
                 if not found:

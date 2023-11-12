@@ -39,7 +39,7 @@ def main():
             
                 if "image_name" in message.value.keys():
                     
-                    bucket = 'test'
+                    bucket = 'events'
                     im_name = message.value['image_name']
                     max_percent = message.value['max_percent']
                     text_message = message.value['text_message']
